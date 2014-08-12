@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package>
+  <name>tue_teleop_keyboard</name>
+  <version>0.0.0</version>
+  <description>The tue_teleop_keyboard package</description>
+
+  <maintainer email="t.t.g.clephas@alumnus.tue.nl">Tim Clephas</maintainer>
+  <author email="tjay@cs.brown.edu">Ivana Bildbotz</author>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+</package>
