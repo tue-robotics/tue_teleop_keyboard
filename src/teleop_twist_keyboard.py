@@ -49,6 +49,7 @@ speedBindings={
 		'c':(1,.9),
 	      }
 
+
 def getKey():
 	tty.setraw(sys.stdin.fileno())
 	select.select([sys.stdin], [], [], 0)
@@ -56,23 +57,20 @@ def getKey():
 	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
 	return key
 
-speed = .1
-turn = .2
 
 def vels(speed,turn):
 	return "currently:\tspeed %s\tturn %s " % (speed,turn)
 
 if __name__=="__main__":
     	settings = termios.tcgetattr(sys.stdin)
-	
+
 	pub = rospy.Publisher('cmd_vel', Twist, queue_size = 1)
 	rospy.init_node('teleop_twist_keyboard')
 
-	speed = rospy.get_param("~speed", 0.5)
-	turn = rospy.get_param("~turn", 1.0)
+	speed = rospy.get_param("~speed", 0.25)
+	turn = rospy.get_param("~turn", 0.5)
 	x = 0
 	y = 0
-	z = 0
 	th = 0
 	status = 0
 
@@ -84,8 +82,7 @@ if __name__=="__main__":
 			if key in moveBindings.keys():
 				x = moveBindings[key][0]
 				y = moveBindings[key][1]
-				z = moveBindings[key][2]
-				th = moveBindings[key][3]
+				th = moveBindings[key][2]
 			elif key in speedBindings.keys():
 				speed = speed * speedBindings[key][0]
 				turn = turn * speedBindings[key][1]
@@ -103,11 +100,11 @@ if __name__=="__main__":
 					break
 
 			twist = Twist()
-			twist.linear.x = x*speed; twist.linear.y = y*speed; twist.linear.z = z*speed;
+			twist.linear.x = x*speed; twist.linear.y = y*speed; twist.linear.z = 0;
 			twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = th*turn
 			pub.publish(twist)
 
-	except:
+	except Exception as e:
 		print e
 
 	finally:
