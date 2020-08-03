@@ -97,7 +97,6 @@ if __name__=="__main__":
 			else:
 				x = 0
 				y = 0
-				z = 0
 				th = 0
 				if (key == '\x03'):
 					break
