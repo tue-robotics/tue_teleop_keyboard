@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+from __future__ import print_function
+
 import roslib; roslib.load_manifest('tue_teleop_keyboard')
 import rospy
 
@@ -49,6 +52,7 @@ speedBindings={
 		'c':(1,.9),
 	      }
 
+
 def getKey():
 	tty.setraw(sys.stdin.fileno())
 	select.select([sys.stdin], [], [], 0)
@@ -56,54 +60,54 @@ def getKey():
 	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
 	return key
 
-speed = .1
-turn = .2
 
 def vels(speed,turn):
 	return "currently:\tspeed %s\tturn %s " % (speed,turn)
 
 if __name__=="__main__":
     	settings = termios.tcgetattr(sys.stdin)
-	
-	pub = rospy.Publisher('/cmd_vel', Twist)
+
+	pub = rospy.Publisher('cmd_vel', Twist, queue_size = 1)
 	rospy.init_node('teleop_twist_keyboard')
 
+	speed = rospy.get_param("~speed", 0.25)
+	turn = rospy.get_param("~turn", 0.5)
 	x = 0
 	y = 0
 	th = 0
 	status = 0
 
 	try:
-		print msg
-		print vels(speed,turn)
+		print(msg)
+		print(vels(speed,turn))
 		while(1):
 			key = getKey()
-			if key in speedBindings.keys():
+			if key in moveBindings.keys():
+				x = moveBindings[key][0]
+				y = moveBindings[key][1]
+				th = moveBindings[key][2]
+			elif key in speedBindings.keys():
 				speed = speed * speedBindings[key][0]
 				turn = turn * speedBindings[key][1]
 
-				print vels(speed,turn)
+				print(vels(speed,turn))
 				if (status == 14):
-					print msg
+					print(msg)
 				status = (status + 1) % 15
 			else:
-				if key in moveBindings.keys():
-					x = moveBindings[key][0]
-					y = moveBindings[key][1]
-					th = moveBindings[key][2]
-				else:
-					x = 0
-					y = 0
-					th = 0
-					if (key == '\x03'):
-						break
-				twist = Twist()
-				twist.linear.x = x*speed; twist.linear.z = 0; twist.linear.y = y*speed
-				twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = th*turn
-				pub.publish(twist)
+				x = 0
+				y = 0
+				th = 0
+				if (key == '\x03'):
+					break
 
-	except:
-		print e
+			twist = Twist()
+			twist.linear.x = x*speed; twist.linear.y = y*speed; twist.linear.z = 0;
+			twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = th*turn
+			pub.publish(twist)
+
+	except Exception as e:
+		print(e)
 
 	finally:
 		twist = Twist()
