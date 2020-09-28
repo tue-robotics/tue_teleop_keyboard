@@ -164,7 +164,6 @@ if __name__ == "__main__":
 
 	x = 0
 	y = 0
-	z = 0
 	th = 0
 	status = 0
 
@@ -196,7 +195,6 @@ if __name__ == "__main__":
 					continue
 				x = 0
 				y = 0
-				z = 0
 				th = 0
 				if (key == '\x03'):
 					break
