@@ -1,11 +1,9 @@
-#!/usr/bin/env python
-
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import threading
+import time
 
-import roslib; roslib.load_manifest('tue_teleop_keyboard')
-import rospy
+import rclpy
 
 from geometry_msgs.msg import Twist
 
@@ -56,9 +54,9 @@ speedBindings={
 
 
 class PublishThread(threading.Thread):
-	def __init__(self, rate):
+	def __init__(self, node, rate):
 		super(PublishThread, self).__init__()
-		self.publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+		self.publisher = node.create_publisher(Twist, 'cmd_vel', 1)
 		self.x = 0.0
 		self.y = 0.0
 		self.th = 0.0
@@ -78,13 +76,13 @@ class PublishThread(threading.Thread):
 
 	def wait_for_subscribers(self):
 		i = 0
-		while not rospy.is_shutdown() and self.publisher.get_num_connections() == 0:
+		while rclpy.ok() and self.publisher.get_subscription_count() == 0:
 			if i == 4:
-				print("Waiting for subscriber to connect to {}".format(self.publisher.name))
-			rospy.sleep(0.5)
+				print("Waiting for subscriber to connect to {}".format(self.publisher.topic_name))
+			time.sleep(0.5)
 			i += 1
 			i = i % 5
-		if rospy.is_shutdown():
+		if not rclpy.ok():
 			raise Exception("Got shutdown request before subscribers connected")
 
 	def update(self, x, y, th, speed, turn):
@@ -100,7 +98,7 @@ class PublishThread(threading.Thread):
 
 	def stop(self):
 		self.done = True
-		self.update(0, 0, 0, 0, 0)
+		self.update(0.0, 0.0, 0.0, 0.0, 0.0)
 		self.join()
 
 	def run(self):
@@ -113,9 +111,9 @@ class PublishThread(threading.Thread):
 			# Copy state into twist message.
 			twist.linear.x = self.x * self.speed
 			twist.linear.y = self.y * self.speed
-			twist.linear.z = 0
-			twist.angular.x = 0
-			twist.angular.y = 0
+			twist.linear.z = 0.0
+			twist.angular.x = 0.0
+			twist.angular.y = 0.0
 			twist.angular.z = self.th * self.turn
 
 			self.condition.release()
@@ -124,12 +122,12 @@ class PublishThread(threading.Thread):
 			self.publisher.publish(twist)
 
 		# Publish stop message when thread exits.
-		twist.linear.x = 0
-		twist.linear.y = 0
-		twist.linear.z = 0
-		twist.angular.x = 0
-		twist.angular.y = 0
-		twist.angular.z = 0
+		twist.linear.x = 0.0
+		twist.linear.y = 0.0
+		twist.linear.z = 0.0
+		twist.angular.x = 0.0
+		twist.angular.y = 0.0
+		twist.angular.z = 0.0
 		self.publisher.publish(twist)
 
 
@@ -151,16 +149,20 @@ def vels(speed, turn):
 if __name__ == "__main__":
 	settings = termios.tcgetattr(sys.stdin)
 
-	rospy.init_node('teleop_twist_keyboard')
+	rclpy.init()
+	node = rclpy.create_node('teleop_twist_keyboard')
 
-	speed = rospy.get_param("~speed", 0.25)
-	turn = rospy.get_param("~turn", 0.5)
-	repeat = rospy.get_param("~repeat_rate", 0.0)
-	key_timeout = rospy.get_param("~key_timeout", 0.0)
+	speed = node.declare_parameter("speed", 0.25).value
+	turn = node.declare_parameter("turn", 0.5).value
+	repeat = node.declare_parameter("repeat_rate", 0.0).value
+	key_timeout = node.declare_parameter("key_timeout", 0.0).value
 	if key_timeout == 0.0:
 		key_timeout = None
 
-	pub_thread = PublishThread(repeat)
+	spinner = threading.Thread(target=rclpy.spin, args=(node,))
+	spinner.start()
+
+	pub_thread = PublishThread(node, repeat)
 
 	x = 0
 	y = 0
@@ -206,5 +208,7 @@ if __name__ == "__main__":
 
 	finally:
 		pub_thread.stop()
+		rclpy.shutdown()
+		spinner.join()
 
 		termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
